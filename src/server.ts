@@ -2,6 +2,7 @@ import express, { Application, Request, Response, NextFunction } from "express";
 import bodyParser from "body-parser"
 import connect from "./DBConnection"
 import User from "./models/user";
+import Survey, {SurveyInterface} from "./models/survey";
 import {UserInterface} from "./models/user";
 import JWT, {ExtractJwt} from "passport-jwt";
 import passport from "passport";
@@ -13,6 +14,8 @@ const port: number = 4000 || process.env.PORT;
 // Needed to parse request body
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+
+
 
 const opts: JWT.StrategyOptions = {
   // Defining a way to get auth token
@@ -36,10 +39,11 @@ passport.use(new JWT.Strategy(opts, function(payload, done) {
     });
 }));
 
+// Middleware that checks if request was made by admin
 function checkAdmin(req: Request, res: Response, next: NextFunction) {
-    if (req.body.user === "admin")
+     if (req.user && req.user.role === "admin")
         return next();
-    console.log(req.body.uesr)
+
     res.status(403).send("Forbiden");
 }
 
@@ -87,12 +91,8 @@ app.post("/signUp", async (req: Request, res: Response) => {
         role: "user",
     })
 
-      if(await newUser.save())
-        // If user added to DB send created user
-        res.status(200).send({user});
-      else
-        // If user wasn`t added to DB send corresponding message
-        res.status(500).send({message: "Unable to create user"})
+      await newUser.save()
+      res.status(200).send({user});
     }
   } catch (err) {
     console.log(err); // TODO: Error handling
@@ -101,6 +101,38 @@ app.post("/signUp", async (req: Request, res: Response) => {
 })
 
 app.use(passport.authenticate("jwt", {session: false}));
+
+//Create survey endpoint
+app.post("/createSurvey", checkAdmin, async (req: Request, res: Response) => {
+  try {
+    // Try to get survey to check if survey with such tittle already exists
+    const survey: SurveyInterface | null = await Survey.findOne({tittle: req.body.tittle});
+
+    // If survey with such tittle exists send corresponding message
+    if(survey) {
+      res.status(400).send({message: "such tittle already exists"});
+      return;
+    }
+
+    // Check if survey questions array is not empty
+    if(req.body.questions.length !== 0) {
+       const newSurvey = new Survey({
+        questions: req.body.questions,
+        tittle: req.body.tittle,
+       })
+
+      // Save new survey to DB
+       await newSurvey.save();
+       res.status(200).send({message: "Created"})
+
+    } else {
+      res.status(400).send({message: "Mo questions were provided"})
+    }
+
+  } catch (error) {
+    res.status(500).send({message: "Unknown server error"}) // TODO: Error handling
+  }
+});
 
 // default endpoint
 app.get("*", (req: Request, res: Response) => {
