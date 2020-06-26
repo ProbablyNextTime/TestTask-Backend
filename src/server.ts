@@ -36,6 +36,14 @@ passport.use(new JWT.Strategy(opts, function(payload, done) {
     });
 }));
 
+function checkAdmin(req: Request, res: Response, next: NextFunction) {
+    if (req.body.user === "admin")
+        return next();
+    console.log(req.body.uesr)
+    res.status(403).send("Forbiden");
+}
+
+
 
 // login user
 app.post("/login", async (req: Request, res: Response) => {
