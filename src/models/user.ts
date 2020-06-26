@@ -1,6 +1,8 @@
 import mongoose, { Schema, Document } from "mongoose";
+import express, {Response} from "express"
 
-export interface UserInterface extends Document {
+export interface UserInterface extends Document{
+  _id: string;
   username: string;
   password: string;
   role: string;
