@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 
+// Wrapper for DB connection
 export default (db: string) => {
   const connect = () => {
     mongoose
