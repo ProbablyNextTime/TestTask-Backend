@@ -134,6 +134,25 @@ app.post("/createSurvey", checkAdmin, async (req: Request, res: Response) => {
   }
 });
 
+
+// Get all user`s uncompleted surveys
+app.get("/surveys", async (req: Request, res: Response) => {
+  try {
+      // get user from DB
+      const user: UserInterface | null = await User.findOne({username: req.user?.username});
+      if(user) {
+        // If user exists get all surveys that he haven`t completed yet
+        const uncompletedSurveys: SurveyInterface[] | null = await Survey.find({_id : {$exists: true, $nin: user.completedSurveys}})
+        res.status(200).send({surveys: uncompletedSurveys});
+      } else {
+        // If user doesn't exist send 401 unauthorized
+        res.status(401).send({message: "Unauthorized"})
+      }
+    } catch (error) {
+    res.status(500).send({message: "Unknown server error"}) // TODO: Error handling
+  }
+})
+
 // default endpoint
 app.get("*", (req: Request, res: Response) => {
   res.status(200).send("Default endpoint");
