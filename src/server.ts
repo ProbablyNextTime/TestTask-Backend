@@ -148,9 +148,6 @@ app.get("/surveys", async (req: Request, res: Response) => {
         // Get all surveys that user hasn't completed yet
         const uncompletedSurveys: SurveyInterface[] | null = await Survey.find({_id : {$exists: true, $nin: completedSurveys}});
         res.status(200).send({surveys: uncompletedSurveys});
-      } else {
-        // If user doesn't exist send 401 unauthorized
-        res.status(401).send({message: "Unauthorized"})
       }
     } catch (error) {
     res.status(500).send({message: "Unknown server error"}) // TODO: Error handling
@@ -193,10 +190,8 @@ app.post("/postSurvey/", async (req: Request, res: Response) => {
             res.status(400).send({message: "Survey has already been completed"})
           }
         } else {
-          res.status(400).send({message: "Invalid survey id"})
+          res.status(400).send({message: "Not found"});
         }
-    } else {
-      res.status(403).send({message: "Unauthorized"});
     }
   } catch (error) {
     res.status(500).send({message: "Unknown error"});
@@ -205,7 +200,7 @@ app.post("/postSurvey/", async (req: Request, res: Response) => {
 
 // default endpoint
 app.get("*", (req: Request, res: Response) => {
-  res.status(200).send("Default endpoint");
+  res.status(404).send("Not found");
 });
 
 // connecting to DB
