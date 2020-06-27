@@ -7,6 +7,8 @@ import {UserInterface} from "./models/user";
 import JWT, {ExtractJwt} from "passport-jwt";
 import passport from "passport";
 import jwt from "jsonwebtoken"
+import {isValidObjectId, Schema} from "mongoose";
+import mongoose from "mongoose"
 
 const app: Application = express();
 const port: number = 4000 || process.env.PORT;
@@ -141,8 +143,10 @@ app.get("/surveys", async (req: Request, res: Response) => {
       // get user from DB
       const user: UserInterface | null = await User.findOne({username: req.user?.username});
       if(user) {
-        // If user exists get all surveys that he haven`t completed yet
-        const uncompletedSurveys: SurveyInterface[] | null = await Survey.find({_id : {$exists: true, $nin: user.completedSurveys}})
+        // If user exists get all surveys that he has already completed
+        const completedSurveys: mongoose.Types.ObjectId[] =  user.completedSurveys.map( survey => survey.surveyId );
+        // Get all surveys that user hasn't completed yet
+        const uncompletedSurveys: SurveyInterface[] | null = await Survey.find({_id : {$exists: true, $nin: completedSurveys}});
         res.status(200).send({surveys: uncompletedSurveys});
       } else {
         // If user doesn't exist send 401 unauthorized
@@ -152,6 +156,52 @@ app.get("/surveys", async (req: Request, res: Response) => {
     res.status(500).send({message: "Unknown server error"}) // TODO: Error handling
   }
 })
+
+// Get survey endpoint
+app.get("/survey/", async (req: Request, res: Response) => {
+  try {
+      // Get surveys from DB
+      const survey: SurveyInterface | null = await Survey.findOne({_id: req.query.Id})
+      if(survey) {
+        res.status(200).send({survey: survey})
+      } else {
+        res.status(404).send({message: "Not Found"})
+      }
+
+    } catch (error) {
+    res.status(500).send({message: "Unknown server error"}) // TODO: Error handling
+  }
+});
+
+// Submit survey answer endpoint
+app.post("/postSurvey/", async (req: Request, res: Response) => {
+  try {
+    // get user from DB
+    const user: UserInterface | null = await User.findOne({_id: req.user?._id})
+    if(user) {
+        // Check if survey id is valid Object ID
+        if(isValidObjectId(req.body.surveyId)) {
+          // Get completed surveys Ids
+          const completedSurveys: mongoose.Types.ObjectId[] =  user.completedSurveys.map( survey => survey.surveyId );
+          // Check if survey has already been completed
+          if(!completedSurveys.find(req.body.surveyId)) {
+            await User.updateOne({_id: req.user?._id}, user)
+            res.status(200).send({message: "Ok"});
+            user.completedSurveys.push({surveyId: req.body.surveyId, answers: req.body.answers});
+          }
+          else {
+            res.status(400).send({message: "Survey has already been completed"})
+          }
+        } else {
+          res.status(400).send({message: "Invalid survey id"})
+        }
+    } else {
+      res.status(403).send({message: "Unauthorized"});
+    }
+  } catch (error) {
+    res.status(500).send({message: "Unknown error"});
+  }
+});
 
 // default endpoint
 app.get("*", (req: Request, res: Response) => {
