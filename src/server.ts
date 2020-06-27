@@ -174,17 +174,17 @@ app.get("/survey/", async (req: Request, res: Response) => {
 app.post("/postSurvey/", async (req: Request, res: Response) => {
   try {
     // get user from DB
-    const user: UserInterface | null = await User.findOne({_id: req.user?._id})
+    const user: UserInterface | null = await User.findOne({_id: req.user?._id}).populate("completedSurveys");
     if(user) {
         // Check if survey id is valid Object ID
         if(isValidObjectId(req.body.surveyId)) {
           // Get completed surveys Ids
-          const completedSurveys: mongoose.Types.ObjectId[] =  user.completedSurveys.map( survey => survey.surveyId );
-          // Check if survey has already been completed
-          if(!completedSurveys.find(req.body.surveyId)) {
+          const completedSurveys: mongoose.Types.ObjectId[] = user.completedSurveys.map( survey => survey.surveyId );
+
+          if(!completedSurveys.find((surveyId) => surveyId === req.body.surveyId )) {
+            user.completedSurveys.push({surveyId: req.body.surveyId, answers: req.body.answers});
             await User.updateOne({_id: req.user?._id}, user)
             res.status(200).send({message: "Ok"});
-            user.completedSurveys.push({surveyId: req.body.surveyId, answers: req.body.answers});
           }
           else {
             res.status(400).send({message: "Survey has already been completed"})
