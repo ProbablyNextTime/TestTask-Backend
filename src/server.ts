@@ -4,7 +4,7 @@ import connect from "./DBConnection"
 import User from "./models/user";
 import Survey, {SurveyInterface} from "./models/survey";
 import {UserInterface} from "./models/user";
-import JWT, {ExtractJwt} from "passport-jwt";
+import JWT from "passport-jwt";
 import passport from "passport";
 import jwt from "jsonwebtoken"
 import {isValidObjectId, Schema} from "mongoose";
@@ -60,17 +60,18 @@ app.post("/login", async (req: Request, res: Response) => {
       // Sign jwt token
       const token = await jwt.sign({user : user}, "secret");
 
+
       if(token) {
         // If token created send user and accessToken
         res.status(200).json({user, accessToken: token});
       } else {
-        // If token wasn`t created send corresponding message
+        // If token wasn't created send corresponding message
         res.status(500).send({user: null, message: "Jwt setting failed"});
       }
     }
     else {
-      // If users data doesn`t match send corresponding message
-      res.status(400).send({user: null, message: "Incorrect data"})
+      // If users data doesn't match send corresponding message
+      res.status(400).send({user: null, message: "Incorrect login or password"})
     }
   } catch (err) {
     console.log(err); // TODO: Error handling
@@ -97,7 +98,6 @@ app.post("/signUp", async (req: Request, res: Response) => {
       res.status(200).send({user});
     }
   } catch (err) {
-    console.log(err); // TODO: Error handling
     res.send(500).send({message: "Unknown server error"});
   }
 })
@@ -108,8 +108,8 @@ app.use(passport.authenticate("jwt", {session: false}));
 app.post("/createSurvey", checkAdmin, async (req: Request, res: Response) => {
   try {
     // Try to get survey to check if survey with such tittle already exists
-    const survey: SurveyInterface | null = await Survey.findOne({tittle: req.body.tittle});
-
+    const survey: SurveyInterface | null = await Survey.findOne({title: req.body.title});
+    console.log("here");
     // If survey with such tittle exists send corresponding message
     if(survey) {
       res.status(400).send({message: "such tittle already exists"});
@@ -120,12 +120,13 @@ app.post("/createSurvey", checkAdmin, async (req: Request, res: Response) => {
     if(req.body.questions.length !== 0) {
        const newSurvey = new Survey({
         questions: req.body.questions,
-        tittle: req.body.tittle,
-       })
+        title: req.body.title,
+        users: []
+       });
 
       // Save new survey to DB
        await newSurvey.save();
-       res.status(200).send({message: "Created"})
+       res.status(200).send({survey: newSurvey})
 
     } else {
       res.status(400).send({message: "Mo questions were provided"})
@@ -180,10 +181,17 @@ app.post("/postSurvey/", async (req: Request, res: Response) => {
         if(isValidObjectId(req.body.surveyId)) {
           // Get completed surveys Ids
           const completedSurveys: mongoose.Types.ObjectId[] = user.completedSurveys.map( survey => survey.surveyId );
+          const survey : SurveyInterface | null = await Survey.findOne({_id : req.body.surveyId});
 
           if(!completedSurveys.find((surveyId) => surveyId === req.body.surveyId )) {
             user.completedSurveys.push({surveyId: req.body.surveyId, answers: req.body.answers});
-            await User.updateOne({_id: req.user?._id}, user)
+            await User.updateOne({_id: req.user?._id}, user);
+
+            if(survey) {
+              survey.users.push(user._id);
+              await Survey.updateOne({_id: req.body.surveyId}, survey);
+            }
+
             res.status(200).send({message: "Ok"});
           }
           else {

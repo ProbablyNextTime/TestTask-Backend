@@ -6,7 +6,7 @@ interface ISurveyAnswers  {
 }
 
 export interface UserInterface extends Document{
-  _id: string;
+  _id: mongoose.Types.ObjectId;
   username: string;
   password: string;
   role: string;
