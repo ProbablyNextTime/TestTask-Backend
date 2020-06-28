@@ -5,9 +5,12 @@ import User from "./models/user";
 import {UserInterface} from "./models/user";
 import jwt from "jsonwebtoken"
 import { surveysRouter } from "./routes/survey"
+import bcrypt from "bcrypt"
+const dotenv = require('dotenv');
+dotenv.config();
 
 const app: Application = express();
-const port: number = 4000 || process.env.PORT;
+const port = process.env.PORT || 4000;
 
 // Needed to parse request body
 app.use(bodyParser.json());
@@ -21,9 +24,9 @@ app.post("/login", async (req: Request, res: Response) => {
   try {
     const user: UserInterface | null = await User.findOne({username: req.body.user.username});
 
-    if(user && user.password === req.body.user.password) {
+    if(user && bcrypt.compareSync(req.body.user.password, user.password)) {
       // Sign jwt token
-      const token = await jwt.sign({user : user}, "secret");
+      const token = jwt.sign({user : user}, process.env.SECRET_KEY || "SECRET");
 
       if(token) {
         // If token created send user and accessToken
@@ -54,7 +57,7 @@ app.post("/signUp", async (req: Request, res: Response) => {
       // Create new user
       const newUser: UserInterface = new User({
         username: req.body.user.username,
-        password: req.body.user.password,
+        password: bcrypt.hashSync(req.body.user.password, 10),
         role: "user",
     })
 
@@ -72,7 +75,7 @@ app.get("*", (req: Request, res: Response) => {
 });
 
 // connecting to DB
-connect("mongodb://localhost:27017/TestTask");
+connect( `mongodb+srv://${process.env.DB_USER_NAME}:${process.env.DB_USER_PASSWORD}@supercluster10k.qsysn.mongodb.net/SUperCLuster10k?retryWrites=true&w=majority`);
 
 // starting server
 app.listen(port, () => {

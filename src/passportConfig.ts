@@ -1,5 +1,5 @@
 import JWT from "passport-jwt";
-import passport, {PassportStatic, Strategy} from "passport";
+import {PassportStatic, Strategy} from "passport";
 import User, {UserInterface} from "./models/user";
 import {NextFunction, Request, Response} from "express";
 
@@ -7,7 +7,7 @@ const opts: JWT.StrategyOptions = {
   // Defining a way to get auth token
   jwtFromRequest: JWT.ExtractJwt.fromAuthHeaderAsBearerToken(),
 
-  secretOrKey:'secret',
+  secretOrKey: process.env.SECRET_KEY || "SECRET",
 }
 
 // Strategy for auth with verify function
