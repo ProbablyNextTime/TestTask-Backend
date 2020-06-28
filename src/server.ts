@@ -75,6 +75,14 @@ app.get("*", (req: Request, res: Response) => {
   res.status(404).send("Not found");
 });
 
+// set headers for option requests
+app.options("/*", function(req, res, next){
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Content-Length, X-Requested-With');
+  res.send(200);
+});
+
 // connecting to DB
 connect( `mongodb+srv://${process.env.DB_USER_NAME}:${process.env.DB_USER_PASSWORD}@supercluster10k.qsysn.mongodb.net/SUperCLuster10k?retryWrites=true&w=majority`);
 
