@@ -46,7 +46,7 @@ function checkAdmin(req: Request, res: Response, next: NextFunction) {
      if (req.user && req.user.role === "admin")
         return next();
 
-    res.status(403).send("Forbiden");
+    res.status(403).send("Forbidden");
 }
 
 
