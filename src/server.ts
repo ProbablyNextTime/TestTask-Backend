@@ -31,7 +31,7 @@ app.post("/login", async (req: Request, res: Response) => {
 
       if(token) {
         // If token created send user and accessToken
-        res.status(200).json({user, accessToken: token});
+        res.status(200).send({user, accessToken: token});
       } else {
         // If token wasn't created send corresponding message
         res.status(500).send({user: null, message: "Jwt setting failed"});
