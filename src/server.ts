@@ -24,7 +24,7 @@ app.use("/surveys", surveysRouter);
 app.post("/login", async (req: Request, res: Response) => {
   try {
     const user: UserInterface | null = await User.findOne({username: req.body.user.username});
-
+    console.log(user, "dadaya")
     if(user && bcrypt.compareSync(req.body.user.password, user.password)) {
       // Sign jwt token
       const token = jwt.sign({user : user}, process.env.SECRET_KEY || "SECRET");
@@ -43,6 +43,7 @@ app.post("/login", async (req: Request, res: Response) => {
     }
   } catch (err) {
     console.log(err); // TODO: Error handling
+    res.status(500).send({message: "Unknown error"})
   }
 });
 
