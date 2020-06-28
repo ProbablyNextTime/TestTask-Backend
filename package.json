@@ -6,7 +6,7 @@
   "scripts": {
     "watchTS": "tsc -w",
     "watchNode": "nodemon build/server.js",
-    "start": "node build/server.js"
+    "start": "ts-node srs/server.ts"
   },
   "repository": {
     "type": "git",
@@ -37,5 +37,8 @@
     "passport-jwt": "^4.0.0",
     "ts-node-dev": "^1.0.0-pre.49",
     "typescript": "^3.9.5"
+  },
+  "engines": {
+    "node": "14.x"
   }
 }
