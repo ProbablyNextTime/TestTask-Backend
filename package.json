@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "watchTS": "tsc -w",
-    "watchNode": "nodemon build/server.js"
+    "watchNode": "nodemon build/server.js",
+    "start": "node build/server.js"
   },
   "repository": {
     "type": "git",
