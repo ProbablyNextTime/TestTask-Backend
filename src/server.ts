@@ -1,54 +1,23 @@
-import express, { Application, Request, Response, NextFunction } from "express";
+import express, { Application, Request, Response } from "express";
 import bodyParser from "body-parser"
 import connect from "./DBConnection"
 import User from "./models/user";
-import Survey, {SurveyInterface} from "./models/survey";
 import {UserInterface} from "./models/user";
-import JWT from "passport-jwt";
-import passport from "passport";
 import jwt from "jsonwebtoken"
-import {isValidObjectId, Schema} from "mongoose";
-import mongoose from "mongoose"
+import { surveysRouter } from "./routes/survey"
+import bcrypt from "bcrypt"
+const dotenv = require('dotenv');
+dotenv.config();
 
 const app: Application = express();
-const port: number = 4000 || process.env.PORT;
+const port = process.env.PORT || 4000;
 
 // Needed to parse request body
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-
-
-const opts: JWT.StrategyOptions = {
-  // Defining a way to get auth token
-  jwtFromRequest: JWT.ExtractJwt.fromAuthHeaderAsBearerToken(),
-
-  secretOrKey:'secret',
-}
-
-// Strategy for auth with verify function
-passport.use(new JWT.Strategy(opts, function(payload, done) {
-    User.findOne({username: payload.user.username}, function(err: Error, user: UserInterface) {
-        if (err) {
-            // handling getting user errors
-            return done(err, false);
-        }
-        if (user) {
-            return done(null, user);
-        } else {
-            return done(null, false);
-        }
-    });
-}));
-
-// Middleware that checks if request was made by admin
-function checkAdmin(req: Request, res: Response, next: NextFunction) {
-     if (req.user && req.user.role === "admin")
-        return next();
-
-    res.status(403).send("Forbidden");
-}
-
+// Defining subRoute for surveys
+app.use("/surveys", surveysRouter);
 
 
 // login user
@@ -56,10 +25,9 @@ app.post("/login", async (req: Request, res: Response) => {
   try {
     const user: UserInterface | null = await User.findOne({username: req.body.user.username});
 
-    if(user && user.password === req.body.user.password) {
+    if(user && bcrypt.compareSync(req.body.user.password, user.password)) {
       // Sign jwt token
-      const token = await jwt.sign({user : user}, "secret");
-
+      const token = jwt.sign({user : user}, process.env.SECRET_KEY || "SECRET");
 
       if(token) {
         // If token created send user and accessToken
@@ -85,12 +53,12 @@ app.post("/signUp", async (req: Request, res: Response) => {
 
     if(user) {
       // If such user already exists send corresponding message
-      res.status(400).send({message: "such user exists"})
+      res.status(409).send({message: "such user exists"})
     } else {
       // Create new user
       const newUser: UserInterface = new User({
         username: req.body.user.username,
-        password: req.body.user.password,
+        password: bcrypt.hashSync(req.body.user.password, 10),
         role: "user",
     })
 
@@ -102,117 +70,13 @@ app.post("/signUp", async (req: Request, res: Response) => {
   }
 })
 
-app.use(passport.authenticate("jwt", {session: false}));
-
-//Create survey endpoint
-app.post("/createSurvey", checkAdmin, async (req: Request, res: Response) => {
-  try {
-    // Try to get survey to check if survey with such tittle already exists
-    const survey: SurveyInterface | null = await Survey.findOne({title: req.body.title});
-    console.log("here");
-    // If survey with such tittle exists send corresponding message
-    if(survey) {
-      res.status(400).send({message: "such tittle already exists"});
-      return;
-    }
-
-    // Check if survey questions array is not empty
-    if(req.body.questions.length !== 0) {
-       const newSurvey = new Survey({
-        questions: req.body.questions,
-        title: req.body.title,
-        users: []
-       });
-
-      // Save new survey to DB
-       await newSurvey.save();
-       res.status(200).send({survey: newSurvey})
-
-    } else {
-      res.status(400).send({message: "Mo questions were provided"})
-    }
-
-  } catch (error) {
-    res.status(500).send({message: "Unknown server error"}) // TODO: Error handling
-  }
-});
-
-
-// Get all user`s uncompleted surveys
-app.get("/surveys", async (req: Request, res: Response) => {
-  try {
-      // get user from DB
-      const user: UserInterface | null = await User.findOne({username: req.user?.username});
-      if(user) {
-        // If user exists get all surveys that he has already completed
-        const completedSurveys: mongoose.Types.ObjectId[] =  user.completedSurveys.map( survey => survey.surveyId );
-        // Get all surveys that user hasn't completed yet
-        const uncompletedSurveys: SurveyInterface[] | null = await Survey.find({_id : {$exists: true, $nin: completedSurveys}});
-        res.status(200).send({surveys: uncompletedSurveys});
-      }
-    } catch (error) {
-    res.status(500).send({message: "Unknown server error"}) // TODO: Error handling
-  }
-})
-
-// Get survey endpoint
-app.get("/survey/", async (req: Request, res: Response) => {
-  try {
-      // Get surveys from DB
-      const survey: SurveyInterface | null = await Survey.findOne({_id: req.query.Id})
-      if(survey) {
-        res.status(200).send({survey: survey})
-      } else {
-        res.status(404).send({message: "Not Found"})
-      }
-
-    } catch (error) {
-    res.status(500).send({message: "Unknown server error"}) // TODO: Error handling
-  }
-});
-
-// Submit survey answer endpoint
-app.post("/postSurvey/", async (req: Request, res: Response) => {
-  try {
-    // get user from DB
-    const user: UserInterface | null = await User.findOne({_id: req.user?._id}).populate("completedSurveys");
-    if(user) {
-        // Check if survey id is valid Object ID
-        if(isValidObjectId(req.body.surveyId)) {
-          // Get completed surveys Ids
-          const completedSurveys: mongoose.Types.ObjectId[] = user.completedSurveys.map( survey => survey.surveyId );
-          const survey : SurveyInterface | null = await Survey.findOne({_id : req.body.surveyId});
-
-          if(!completedSurveys.find((surveyId) => surveyId === req.body.surveyId )) {
-            user.completedSurveys.push({surveyId: req.body.surveyId, answers: req.body.answers});
-            await User.updateOne({_id: req.user?._id}, user);
-
-            if(survey) {
-              survey.users.push(user._id);
-              await Survey.updateOne({_id: req.body.surveyId}, survey);
-            }
-
-            res.status(200).send({message: "Ok"});
-          }
-          else {
-            res.status(400).send({message: "Survey has already been completed"})
-          }
-        } else {
-          res.status(400).send({message: "Not found"});
-        }
-    }
-  } catch (error) {
-    res.status(500).send({message: "Unknown error"});
-  }
-});
-
 // default endpoint
 app.get("*", (req: Request, res: Response) => {
   res.status(404).send("Not found");
 });
 
 // connecting to DB
-connect("mongodb://localhost:27017/TestTask");
+connect( `mongodb+srv://${process.env.DB_USER_NAME}:${process.env.DB_USER_PASSWORD}@supercluster10k.qsysn.mongodb.net/SUperCLuster10k?retryWrites=true&w=majority`);
 
 // starting server
 app.listen(port, () => {
