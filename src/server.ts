@@ -16,6 +16,9 @@ const port = process.env.PORT || 4000;
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
+// Defining subRoute for surveys
+app.use("/api/surveys", surveysRouter);
+
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', 'https://compassionate-varahamihira-ae291d.netlify.app');
   res.setHeader('Access-Control-Allow-Credentials', "true");
@@ -24,9 +27,6 @@ app.use((req, res, next) => {
   res.setHeader('Access-Control-Expose-Headers', ['Content-Type']);
   next();
 });
-
-// Defining subRoute for surveys
-app.use("/api/surveys", surveysRouter);
 
 // login user
 app.post("/api/login", async (req: Request, res: Response) => {
