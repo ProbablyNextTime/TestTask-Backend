@@ -15,7 +15,6 @@ passportInitialize(passport);
 
 surveysRouter.use(passport.authenticate("jwt", {session: false}));
 
-
 surveysRouter.post("/", checkAdmin, async (req: Request, res: Response) => {
   try {
     // Try to get survey to check if survey with such tittle already exists

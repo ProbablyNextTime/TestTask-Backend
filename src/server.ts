@@ -16,21 +16,12 @@ const port = process.env.PORT || 4000;
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-app.options("/*", function(req, res, next){
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Content-Length, X-Requested-With');
-  res.send(200);
-});
-
-app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', 'https://compassionate-varahamihira-ae291d.netlify.app');
-  res.setHeader('Access-Control-Allow-Credentials', "true");
-  res.setHeader('Access-Control-Allow-Methods', ['PATCH', 'POST', 'GET', 'DELETE', 'PUT']);
-  res.setHeader('Access-Control-Allow-Headers', ['Content-Type']);
-  res.setHeader('Access-Control-Expose-Headers', ['Content-Type']);
-  next();
-});
+// app.options("/*", function(req, res, next){
+//   res.header('Access-Control-Allow-Origin', '*');
+//   res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
+//   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Content-Length, X-Requested-With');
+//   res.send(200);
+// });
 
 // Defining subRoute for surveys
 app.use("/api/surveys", surveysRouter);
@@ -86,6 +77,15 @@ app.post("/api//signUp", async (req: Request, res: Response) => {
     res.send(500).send({message: "Unknown server error"});
   }
 })
+
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', 'https://compassionate-varahamihira-ae291d.netlify.app');
+  res.setHeader('Access-Control-Allow-Credentials', "true");
+  res.setHeader('Access-Control-Allow-Methods', ['PATCH', 'POST', 'GET', 'DELETE', 'PUT']);
+  res.setHeader('Access-Control-Allow-Headers', ['Content-Type']);
+  res.setHeader('Access-Control-Expose-Headers', ['Content-Type']);
+  next();
+});
 
 // default endpoint
 app.get("*", (req: Request, res: Response) => {
