@@ -17,11 +17,11 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 // Defining subRoute for surveys
-app.use("/surveys", surveysRouter);
+app.use("/api/surveys", surveysRouter);
 
 
 // login user
-app.post("/login", async (req: Request, res: Response) => {
+app.post("/api/login", async (req: Request, res: Response) => {
   try {
     const user: UserInterface | null = await User.findOne({username: req.body.user.username});
     console.log(user, "dadaya")
@@ -48,7 +48,7 @@ app.post("/login", async (req: Request, res: Response) => {
 });
 
 // SignUp newUser
-app.post("/signUp", async (req: Request, res: Response) => {
+app.post("/api//signUp", async (req: Request, res: Response) => {
   try {
     const user: UserInterface | null = await User.findOne({username: req.body.user.username})
 
