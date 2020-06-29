@@ -5,8 +5,10 @@
   "main": "index.js",
   "scripts": {
     "watchTS": "tsc -w",
-    "watchNode": "nodemon build/server.js",
-    "start": "ts-node src/server.ts"
+    "watchNode": "nodemon buildBack/server.js",
+    "build": "rimraf buildBack && tsc",
+    "postinstall": "npm run build",
+    "start": "node buildBack/server.js"
   },
   "repository": {
     "type": "git",
