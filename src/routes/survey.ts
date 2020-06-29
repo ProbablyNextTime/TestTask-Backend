@@ -65,7 +65,7 @@ surveysRouter.get("/", async (req: Request, res: Response) => {
 })
 
 // Get survey endpoint
-surveysRouter.get("/:Id", async (req: Request, res: Response) => {
+surveysRouter.get("/", async (req: Request, res: Response) => {
   try {
       // Get surveys from DB
       const survey: SurveyInterface | null = await Survey.findOne({_id: req.query.Id})
