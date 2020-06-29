@@ -17,8 +17,7 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 // Defining subRoute for surveys
-app.use("/surveys", surveysRouter);
-
+app.use("api/surveys", surveysRouter);
 
 // login user
 app.post("/login", async (req: Request, res: Response) => {
